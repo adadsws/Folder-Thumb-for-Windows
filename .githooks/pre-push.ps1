@@ -80,8 +80,7 @@ foreach ($update in $updates) {
 
     foreach ($commit in $commits) {
         $paths = @(
-            git -c "safe.directory=$safeDirectory" -c core.quotepath=false `
-                diff-tree --root --no-commit-id --name-only -r $commit
+            git -c "safe.directory=$safeDirectory" diff-tree --root --no-commit-id --name-only -r $commit
         )
 
         if ($LASTEXITCODE -ne 0) {
@@ -104,7 +103,7 @@ if ($blockedPaths.Count -gt 0) {
         [Console]::Error.WriteLine('  - {0}' -f $blockedPath)
     }
     [Console]::Error.WriteLine(
-        'Publish from output/github-export/ using the sanitized main-only export workflow.'
+        'Publish from a sanitized export repository or a history-free orphan branch.'
     )
     exit 1
 }
