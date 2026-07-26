@@ -80,39 +80,48 @@ path=D:\Gallery
 - Each processed subfolder contains two hidden files: `fi_*.ico` and `desktop.ini`. Deleting them reverts the icon to the default — use mode 2 (Restore) instead.
 - Re-run mode 1 after adding new subfolders or replacing images; the old ICO is replaced automatically.
 
-## 仓库约定
+## Repository conventions
 
-- `data/` 只存输入数据；发布前必须把其中的隐私值替换为示例值。
-- `output/` 只存可重新生成的输出，`~temp/` 只存临时文件；这两个目录不会提交。
-- `secrets/` 可保存本地真实配置，但每个文件必须有同名、无真实值的 `.example`。
-- 无用或旧文件经确认后移入所属子项目的 `~archived/`，不直接删除。
-- 设计或实现前调研的成熟 GitHub 项目放入 `~ref/`。
-- `~archived/`、`~ref/` 和 `secrets/` 内的真实文件只在本地跟踪和提交，禁止推送到远程。
-- `secrets/**/*.example` 保留原路径，经确认不含真实值后允许推送。
-- `docs/superpowers/plans/` 只保留执行中的计划；已完成计划及时移入 `~archived/superpowers-plans/`。
-- 当前项目没有因总体积或文件数量而不适合推送的大文件夹；以后出现时，本地保留完整目录，远程脱敏导出用原位置的同名 `.md` 说明替代。
-- 除 `output/` 和 `~temp/` 外，仓库内容不得通过 Git ignore 排除。
+- `data/` contains inputs only; replace private values with sample data before publishing.
+- `output/` contains reproducible outputs and `~temp/` contains temporary files; neither directory is committed.
+- `secrets/` may contain real local configuration, but every private file must have an adjacent, sanitized `.example`.
+- Move obsolete files to the relevant project's `~archived/` after confirmation; do not delete them.
+- Mature GitHub projects used for implementation research belong in `~ref/`.
+- Track and commit `~archived/`, `~ref/`, and real secrets locally, but never push them.
+- Sanitized `secrets/**/*.example` files may keep their paths and be pushed after verification.
+- Keep only active plans in `docs/superpowers/plans/`; move completed plans to `~archived/superpowers-plans/`.
+- This project currently has no folders too large to push. If one is added, keep it locally and replace it with a same-name `.md` description in the sanitized remote export.
+- Do not hide repository content through `.gitignore`, `.git/info/exclude`, or a global Git ignore file; only `output/` and `~temp/` may be ignored.
 
-修改治理文件后可运行：
+After changing governance files, run:
 
 ```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tests/Test-RepositoryComplianceHarness.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File tests/Test-RepositoryCompliance.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File tests/Test-PrePushGuard.ps1
 ```
 
-## Push 安全守卫
+## Push safety guard
 
-当前仓库使用版本化的 `.githooks/pre-push` 阻止直接推送包含以下本地专用路径的提交历史：
+The version-controlled `.githooks/pre-push` blocks outgoing history that contains:
 
 - `~archived/`
-- `secrets/` 中非 `.example` 的文件
+- files under `secrets/` other than `.example` files
 - `~ref/`
 - `docs/superpowers/plans/`
 
-首次使用此工作树时启用守卫：
+Enable the guard when using this working tree for the first time:
 
 ```powershell
 git config core.hooksPath .githooks
 ```
 
-如果待发布历史包含上述路径，请从不含这些路径及其历史的独立脱敏导出仓库或无历史 orphan 分支发布，不要绕过守卫。
+If outgoing history contains any blocked path, publish through an independent sanitized export:
+
+1. Clone the current remote `main` into `output/github-export/`.
+2. Copy only publishable files from this working tree, overwriting matching paths in the export.
+3. Inspect the export diff and history for private or local-only content, then run the tests and pre-push hook.
+4. Keep only `main`; synchronize remote updates and use a fast-forward push without force.
+5. After pushing, confirm the source repository, export repository, and remote expose only `main`.
+
+The source repository keeps its private local history and does not merge the sanitized export history. Do not bypass the guard or publish through another branch.

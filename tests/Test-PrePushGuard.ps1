@@ -64,6 +64,87 @@ if ($archivedResult.Output -notmatch '~archived/old-file.txt') {
     exit 1
 }
 
+$referenceResult = Invoke-PathCheck -Path '~ref/reference/file.txt'
+if ($referenceResult.ExitCode -eq 0) {
+    Write-Error 'Pre-push hook allowed a reference repository path.'
+    exit 1
+}
+
+if ($referenceResult.Output -notmatch '~ref/reference/file.txt') {
+    Write-Error 'Pre-push hook did not identify the blocked reference repository path.'
+    exit 1
+}
+
+$activePlanResult = Invoke-PathCheck -Path 'docs/superpowers/plans/active.md'
+if ($activePlanResult.ExitCode -eq 0) {
+    Write-Error 'Pre-push hook allowed an active Superpowers plan.'
+    exit 1
+}
+
+if ($activePlanResult.Output -notmatch 'docs/superpowers/plans/active.md') {
+    Write-Error 'Pre-push hook did not identify the blocked active Superpowers plan.'
+    exit 1
+}
+
+$hookScriptPath = Join-Path $repositoryRoot '.githooks\pre-push.ps1'
+foreach ($blockedUnicodePath in @('~ref/中文.txt', 'secrets/密钥.env')) {
+    $unicodeFixtureRoot = Join-Path (
+        Join-Path $repositoryRoot '~temp'
+    ) ('pre-push-unicode-{0}' -f [guid]::NewGuid().ToString('N'))
+    $unicodeFilePath = Join-Path $unicodeFixtureRoot $blockedUnicodePath
+
+    [void](New-Item -ItemType Directory -Path (Split-Path -Parent $unicodeFilePath) -Force)
+    Set-Content -LiteralPath $unicodeFilePath -Encoding UTF8 -Value 'local-only value'
+
+    & git init --quiet $unicodeFixtureRoot
+    & git -C $unicodeFixtureRoot add $blockedUnicodePath
+    & git -C $unicodeFixtureRoot -c user.name=Test -c user.email=test@example.invalid `
+        commit --quiet -m 'Add Unicode local-only path'
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error 'Unable to create the Unicode pre-push fixture commit.'
+        exit 1
+    }
+
+    $unicodeCommit = git -C $unicodeFixtureRoot rev-parse HEAD
+    $unicodeInput = 'refs/heads/main {0} refs/heads/main {1}' -f `
+        $unicodeCommit, ('0' * 40)
+    $previousLocation = Get-Location
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    Set-Location -LiteralPath $unicodeFixtureRoot
+    try {
+        $unicodeOutput = $unicodeInput |
+            & powershell -NoProfile -ExecutionPolicy Bypass -File $hookScriptPath `
+                origin 'https://example.invalid/repository.git' 2>&1
+        $unicodeExitCode = $LASTEXITCODE
+    }
+    finally {
+        Set-Location -LiteralPath $previousLocation
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+
+    if ($unicodeExitCode -eq 0) {
+        Write-Error (
+            'Pre-push hook allowed Unicode local-only path from Git history: {0}' -f
+            $blockedUnicodePath
+        )
+        exit 1
+    }
+
+    $unicodeOutputText = $unicodeOutput -join [Environment]::NewLine
+    $blockedPathPrefix = '{0}/' -f ($blockedUnicodePath -split '/')[0]
+    if (
+        $unicodeOutputText -notmatch 'Push blocked' -or
+        $unicodeOutputText -notmatch [regex]::Escape($blockedPathPrefix)
+    ) {
+        Write-Error (
+            'Pre-push hook failed without classifying Unicode path {0}: {1}' -f
+            $blockedUnicodePath, $unicodeOutputText
+        )
+        exit 1
+    }
+}
+
 $safeDirectory = $repositoryRoot.Replace('\', '/')
 $originMain = git -c "safe.directory=$safeDirectory" rev-parse origin/main
 

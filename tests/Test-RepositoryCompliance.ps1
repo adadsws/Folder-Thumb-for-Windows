@@ -1,8 +1,15 @@
 [CmdletBinding()]
-param()
+param(
+    [string]$RepositoryRoot
+)
 
 $ErrorActionPreference = 'Stop'
-$repositoryRoot = Split-Path -Parent $PSScriptRoot
+if ([string]::IsNullOrWhiteSpace($RepositoryRoot)) {
+    $RepositoryRoot = Split-Path -Parent $PSScriptRoot
+}
+
+$repositoryRoot = (Resolve-Path -LiteralPath $RepositoryRoot).Path
+$safeDirectory = $repositoryRoot.Replace('\', '/')
 $failures = [System.Collections.Generic.List[string]]::new()
 
 function Add-ComplianceFailure {
@@ -47,6 +54,40 @@ foreach ($requiredDocument in @('README.md', 'CHANGELOG.md')) {
     $requiredDocumentPath = Join-Path $repositoryRoot $requiredDocument
     if (-not (Test-Path -LiteralPath $requiredDocumentPath -PathType Leaf)) {
         Add-ComplianceFailure ("Required document is missing: {0}" -f $requiredDocument)
+    }
+}
+
+$ignoredPaths = @(
+    git -c "safe.directory=$safeDirectory" -c core.quotepath=false -C $repositoryRoot `
+        ls-files --others --ignored --exclude-standard
+)
+if ($LASTEXITCODE -ne 0) {
+    Add-ComplianceFailure 'Unable to inspect ignored repository files.'
+}
+else {
+    foreach ($ignoredPath in $ignoredPaths) {
+        $normalizedPath = $ignoredPath.Replace('\', '/')
+        if ($normalizedPath -notmatch '^(output|~temp)(/|$)') {
+            Add-ComplianceFailure (
+                'Repository file is hidden by a Git ignore source: {0}' -f $normalizedPath
+            )
+        }
+    }
+}
+
+$untrackedPaths = @(
+    git -c "safe.directory=$safeDirectory" -c core.quotepath=false -C $repositoryRoot `
+        ls-files --others --exclude-standard
+)
+if ($LASTEXITCODE -ne 0) {
+    Add-ComplianceFailure 'Unable to inspect untracked repository files.'
+}
+else {
+    foreach ($untrackedPath in $untrackedPaths) {
+        Add-ComplianceFailure (
+            'Repository file must be tracked by local Git: {0}' -f
+            $untrackedPath.Replace('\', '/')
+        )
     }
 }
 
