@@ -6,6 +6,10 @@
 
 ### 仓库治理
 
+- 在 `README.md` 中加入可点击的效果预览图和 Bilibili 项目介绍视频。
+- 将 `README.md` 扩充为紧凑的英文开源项目用法文档，补充下载安装、完整 `config.ini` 配置和工作原理说明。
+- 为精简后的 `README.md` 补充菜单、目标、支持格式和 Explorer 图标视图说明。
+- 将 `README.md` 精简为英文的运行要求、使用步骤和最小配置示例。
 - 修复 Git 中文路径转义导致 pre-push 守卫漏判本地专用文件、合规检查误判输出文件的问题。
 - 增加隔离仓库回归测试，确保 `.git/info/exclude` 或 global gitignore 不能隐藏应由本地 Git 跟踪的文件。
 - 扩充 pre-push 守卫验证，覆盖 `~ref/` 与执行中的 Superpowers 计划，并移除 orphan branch 发布指引。
