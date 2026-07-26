@@ -6,6 +6,7 @@
 
 ### 仓库治理
 
+- 将与 `config.ini` 内容重复的 `config.ini.example` 移入本地归档，并从发布仓库移除。
 - 将 `README.md` 中的可点击预览图调整为响应式 20% 宽度。
 - 在 `README.md` 中加入可点击的效果预览图和 Bilibili 项目介绍视频。
 - 将 `README.md` 扩充为紧凑的英文开源项目用法文档，补充下载安装、完整 `config.ini` 配置和工作原理说明。
