@@ -4,7 +4,7 @@ Generate Windows folder thumbnails from the first supported image found in each 
 
 ## Demo
 
-[![Folder thumbnail preview](docs/202604100646.mp4_20260726_161435.607.jpg)](https://www.bilibili.com/video/BV1heDdBNEVU)
+<a href="https://www.bilibili.com/video/BV1heDdBNEVU"><img src="docs/202604100646.mp4_20260726_161435.607.jpg" alt="Folder thumbnail preview" width="20%"></a>
 
 [Watch the introduction video on Bilibili.](https://www.bilibili.com/video/BV1heDdBNEVU)
 
