@@ -1,1 +1,4 @@
 .githooks/pre-push text eol=lf
+# Windows-only interactive script keeps its historical CRLF bytes.
+scripts/set_folder_thumb.ps1 -text whitespace=cr-at-eol
+run.bat -text whitespace=cr-at-eol

@@ -44,13 +44,19 @@ if ($directResult.ExitCode -ne 0) {
 [void](New-Item -ItemType Directory -Path $fixtureRoot -Force)
 [void](New-Item -ItemType Directory -Path (Join-Path $fixtureRoot 'output') -Force)
 [void](New-Item -ItemType Directory -Path (Join-Path $fixtureRoot '~temp') -Force)
+[void](New-Item -ItemType Directory -Path (Join-Path $fixtureRoot '~outputs') -Force)
+[void](New-Item -ItemType Directory -Path (Join-Path $fixtureRoot '.worktrees') -Force)
+[void](New-Item -ItemType Directory -Path (Join-Path $fixtureRoot '.venv') -Force)
 
 Set-Content -LiteralPath (Join-Path $fixtureRoot '.gitignore') -Encoding UTF8 -Value @(
-    'output/'
+    '~outputs/'
     '~temp/'
+    '.worktrees/'
+    '.venv/'
 )
 Set-Content -LiteralPath (Join-Path $fixtureRoot 'README.md') -Encoding UTF8 -Value '# Test'
 Set-Content -LiteralPath (Join-Path $fixtureRoot 'CHANGELOG.md') -Encoding UTF8 -Value '# Test'
+Set-Content -LiteralPath (Join-Path $fixtureRoot 'AGENT_CONTEXT.md') -Encoding UTF8 -Value '# Test'
 
 & git init --quiet $fixtureRoot
 if ($LASTEXITCODE -ne 0) {
@@ -58,16 +64,20 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-& git -C $fixtureRoot add .gitignore README.md CHANGELOG.md
+& git -C $fixtureRoot add .gitignore README.md CHANGELOG.md AGENT_CONTEXT.md
 if ($LASTEXITCODE -ne 0) {
     Write-Error 'Unable to stage the compliance test baseline.'
     exit 1
 }
 
-Set-Content -LiteralPath (Join-Path $fixtureRoot 'output\中文.txt') `
+Set-Content -LiteralPath (Join-Path $fixtureRoot '~outputs\中文.txt') `
     -Encoding UTF8 -Value 'allowed output'
 Set-Content -LiteralPath (Join-Path $fixtureRoot '~temp\中文.txt') `
     -Encoding UTF8 -Value 'allowed temporary file'
+Set-Content -LiteralPath (Join-Path $fixtureRoot '.worktrees\中文.txt') `
+    -Encoding UTF8 -Value 'allowed worktree file'
+Set-Content -LiteralPath (Join-Path $fixtureRoot '.venv\中文.txt') `
+    -Encoding UTF8 -Value 'allowed virtual environment file'
 
 $baselineResult = Invoke-ComplianceCheck -Root $fixtureRoot
 if ($baselineResult.ExitCode -ne 0) {

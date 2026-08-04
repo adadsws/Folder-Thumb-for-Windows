@@ -53,41 +53,42 @@ if ($privateSecretResult.Output -notmatch 'secrets/service.env') {
     exit 1
 }
 
-$archivedResult = Invoke-PathCheck -Path '~archived/old-file.txt'
+$archivedResult = Invoke-PathCheck -Path '~archive/old-file.txt'
 if ($archivedResult.ExitCode -eq 0) {
     Write-Error 'Pre-push hook allowed an archived path.'
     exit 1
 }
 
-if ($archivedResult.Output -notmatch '~archived/old-file.txt') {
+if ($archivedResult.Output -notmatch '~archive/old-file.txt') {
     Write-Error 'Pre-push hook did not identify the blocked archived path.'
     exit 1
 }
 
-$referenceResult = Invoke-PathCheck -Path '~ref/reference/file.txt'
-if ($referenceResult.ExitCode -eq 0) {
-    Write-Error 'Pre-push hook allowed a reference repository path.'
+$outputsResult = Invoke-PathCheck -Path '~outputs/audit/result.txt'
+if ($outputsResult.ExitCode -eq 0) {
+    Write-Error 'Pre-push hook allowed an output path.'
     exit 1
 }
 
-if ($referenceResult.Output -notmatch '~ref/reference/file.txt') {
-    Write-Error 'Pre-push hook did not identify the blocked reference repository path.'
+if ($outputsResult.Output -notmatch '~outputs/audit/result.txt') {
+    Write-Error 'Pre-push hook did not identify the blocked output path.'
     exit 1
 }
 
-$activePlanResult = Invoke-PathCheck -Path 'docs/superpowers/plans/active.md'
-if ($activePlanResult.ExitCode -eq 0) {
-    Write-Error 'Pre-push hook allowed an active Superpowers plan.'
-    exit 1
-}
-
-if ($activePlanResult.Output -notmatch 'docs/superpowers/plans/active.md') {
-    Write-Error 'Pre-push hook did not identify the blocked active Superpowers plan.'
-    exit 1
+foreach ($publishablePath in @(
+    'reference/PowerToys/README.md',
+    'docs/plans/active.md',
+    'docs/finished_plans/complete.md'
+)) {
+    $publishableResult = Invoke-PathCheck -Path $publishablePath
+    if ($publishableResult.ExitCode -ne 0) {
+        Write-Error ('Pre-push hook rejected publishable path: {0}' -f $publishablePath)
+        exit 1
+    }
 }
 
 $hookScriptPath = Join-Path $repositoryRoot '.githooks\pre-push.ps1'
-foreach ($blockedUnicodePath in @('~ref/中文.txt', 'secrets/密钥.env')) {
+foreach ($blockedUnicodePath in @('~archive/中文.txt', '~outputs/中文.txt', 'secrets/密钥.env')) {
     $unicodeFixtureRoot = Join-Path (
         Join-Path $repositoryRoot '~temp'
     ) ('pre-push-unicode-{0}' -f [guid]::NewGuid().ToString('N'))

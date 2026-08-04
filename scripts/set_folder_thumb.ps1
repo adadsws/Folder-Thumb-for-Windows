@@ -8,7 +8,7 @@
     yellow folder icon with that image.
 
     Three modes:
-      1  Process the directory where this script lives
+      1  Process the project directory that contains run.bat
       2  Enter a path interactively
       3  Read paths from paths.ini (path= lines under [paths])
       4  Restore default folder icons (remove desktop.ini and ico files)
@@ -20,9 +20,15 @@
 
 #Requires -Version 5.1
 
-Add-Type -AssemblyName System.Drawing
+[CmdletBinding()]
+param(
+    [scriptblock]$RecycleAction
+)
 
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+Add-Type -AssemblyName System.Drawing
+. (Join-Path $PSScriptRoot 'file_cleanup.ps1')
+
+$scriptDir = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $exts      = @('.jpg', '.jpeg', '.png', '.bmp', '.gif', '.webp')
 
 # ---------------------------------------------------------------------------
@@ -32,7 +38,7 @@ function Get-TargetDirs {
     param([string]$Prompt = "Enter 1 / 2 / 3")
     Write-Host ""
     Write-Host "Select target:"
-    Write-Host "  1  Script directory  : $scriptDir"
+    Write-Host "  1  Project directory : $scriptDir"
     Write-Host "  2  Enter a custom path"
     Write-Host "  3  Read paths from config.ini"
     Write-Host ""
@@ -100,16 +106,35 @@ if ($mode -eq '2') {
             $ini = Join-Path $f 'desktop.ini'
             if (Test-Path -LiteralPath $ini) {
                 attrib -s -h $ini
-                Remove-Item -LiteralPath $ini -Force
-                Write-Host "  Removed desktop.ini : $($_.Name)"
+                if (
+                    Move-FileToRecycleBin `
+                        -LiteralPath $ini `
+                        -RecycleAction $RecycleAction
+                ) {
+                    Write-Host "  Recycled desktop.ini : $($_.Name)"
+                }
             }
             Get-ChildItem -LiteralPath $f -Filter 'fi_*.ico' -Force |
-                ForEach-Object { attrib -h $_.FullName; Remove-Item $_.FullName -Force }
+                ForEach-Object {
+                    attrib -h $_.FullName
+                    if (
+                        Move-FileToRecycleBin `
+                            -LiteralPath $_.FullName `
+                            -RecycleAction $RecycleAction
+                    ) {
+                        Write-Host "  Recycled generated icon : $($_.Name)"
+                    }
+                }
             $legacyIco = Join-Path $f 'folder.ico'
             if (Test-Path -LiteralPath $legacyIco) {
                 attrib -h $legacyIco
-                Remove-Item -LiteralPath $legacyIco -Force
-                Write-Host "  Removed folder.ico  : $($_.Name)"
+                if (
+                    Move-FileToRecycleBin `
+                        -LiteralPath $legacyIco `
+                        -RecycleAction $RecycleAction
+                ) {
+                    Write-Host "  Recycled folder.ico  : $($_.Name)"
+                }
             }
             attrib -s $f
         }
@@ -225,7 +250,10 @@ foreach ($targetDir in $dirs) {
         # Remove old generated ico files and unprotect desktop.ini
         if (Test-Path -LiteralPath $ini) { attrib -s -h $ini }
         Get-ChildItem -LiteralPath $folder.FullName -Filter 'fi_*.ico' -Force |
-            ForEach-Object { attrib -h $_.FullName; Remove-Item $_.FullName -Force }
+            ForEach-Object {
+                attrib -h $_.FullName
+                Remove-FilePermanently -LiteralPath $_.FullName
+            }
 
         New-FolderIco -ImagePath $img.FullName -IcoPath $ico -FitMode $fitMode
         attrib +h $ico

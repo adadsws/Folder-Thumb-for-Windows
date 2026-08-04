@@ -21,7 +21,7 @@ function Test-IsLocalOnlyPath {
 
     $normalizedPath = $Path.Replace('\', '/')
 
-    if ($normalizedPath -match '^(~archived|~ref|docs/superpowers/plans)(/|$)') {
+    if ($normalizedPath -match '^(~archive|~outputs)(/|$)') {
         return $true
     }
 
@@ -104,7 +104,7 @@ if ($blockedPaths.Count -gt 0) {
         [Console]::Error.WriteLine('  - {0}' -f $blockedPath)
     }
     [Console]::Error.WriteLine(
-        'Publish from output/github-export/ using the sanitized main-only export workflow.'
+        'Publish from ~temp/github-export/ using the sanitized export workflow.'
     )
     exit 1
 }

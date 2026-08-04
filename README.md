@@ -16,7 +16,7 @@ Generate Windows folder thumbnails from the first supported image found in each 
 git clone https://github.com/adadsws/Folder-Thumb-for-Windows.git
 ```
 
-2. Keep `run.bat`, `set_folder_thumb.ps1`, and `config.ini` in the same folder.
+2. Keep `run.bat`, `config.ini`, and the `scripts` folder together in the project directory.
 3. Double-click `run.bat`.
 
 ## Requirements
@@ -35,7 +35,7 @@ First choose a mode:
 
 Then choose a target:
 
-- `1` — Process subfolders in the script directory
+- `1` — Process subfolders in the project directory containing `run.bat`
 - `2` — Enter a custom absolute path
 - `3` — Load multiple paths from `config.ini`
 
@@ -61,4 +61,4 @@ Use `fit=crop` to fill the 256×256 icon or `fit=letterbox` to preserve the comp
 
 ## How It Works
 
-The script recursively scans the selected folder's subfolders and uses the first supported image found in each one. It creates a 256×256 `.ico`, writes the folder icon setting to `desktop.ini`, and restarts Explorer to refresh the result. Restore mode removes `desktop.ini` and generated icon files from the processed subfolders.
+The script recursively scans the selected folder's subfolders and uses the first supported image found in each one. It creates a 256×256 `.ico`, writes the folder icon setting to `desktop.ini`, and restarts Explorer to refresh the result. Restore mode sends `desktop.ini` and icon files to the Windows Recycle Bin; if recycling is unavailable, the files are kept and a warning is shown. Regenerating thumbnails still permanently removes obsolete generated `fi_*.ico` files to avoid filling the Recycle Bin with temporary icons.

@@ -1,0 +1,9 @@
+[submodule "PowerToys"]
+	path = reference/PowerToys
+	url = https://github.com/microsoft/PowerToys.git
+[submodule "mattpocock-skills"]
+	path = reference/mattpocock-skills
+	url = https://github.com/mattpocock/skills.git
+[submodule "winutil"]
+	path = reference/winutil
+	url = https://github.com/ChrisTitusTech/winutil.git

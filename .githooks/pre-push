@@ -1,4 +1,4 @@
 #!/bin/sh
 
-hook_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-exec powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$hook_dir/pre-push.ps1" "$@"
+hook_script=${0%pre-push}pre-push.ps1
+exec powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$hook_script" "$@"

@@ -9,6 +9,8 @@ if ([string]::IsNullOrWhiteSpace($RepositoryRoot)) {
 }
 
 $repositoryRoot = (Resolve-Path -LiteralPath $RepositoryRoot).Path
+$projectRoot = (Resolve-Path -LiteralPath (Split-Path -Parent $PSScriptRoot)).Path
+$isProjectRepository = $repositoryRoot -eq $projectRoot
 $safeDirectory = $repositoryRoot.Replace('\', '/')
 $failures = [System.Collections.Generic.List[string]]::new()
 
@@ -22,7 +24,7 @@ function Add-ComplianceFailure {
 }
 
 $gitIgnorePath = Join-Path $repositoryRoot '.gitignore'
-$requiredIgnoreRules = @('output/', '~temp/')
+$requiredIgnoreRules = @('~outputs/', '~temp/', '.worktrees/', '.venv/')
 
 if (-not (Test-Path -LiteralPath $gitIgnorePath -PathType Leaf)) {
     Add-ComplianceFailure '.gitignore does not exist.'
@@ -50,7 +52,7 @@ else {
     }
 }
 
-foreach ($requiredDocument in @('README.md', 'CHANGELOG.md')) {
+foreach ($requiredDocument in @('README.md', 'CHANGELOG.md', 'AGENT_CONTEXT.md')) {
     $requiredDocumentPath = Join-Path $repositoryRoot $requiredDocument
     if (-not (Test-Path -LiteralPath $requiredDocumentPath -PathType Leaf)) {
         Add-ComplianceFailure ("Required document is missing: {0}" -f $requiredDocument)
@@ -67,10 +69,82 @@ if ($LASTEXITCODE -ne 0) {
 else {
     foreach ($ignoredPath in $ignoredPaths) {
         $normalizedPath = $ignoredPath.Replace('\', '/')
-        if ($normalizedPath -notmatch '^(output|~temp)(/|$)') {
+        if ($normalizedPath -notmatch '^(~outputs|~temp|\.worktrees|\.venv)(/|$)') {
             Add-ComplianceFailure (
                 'Repository file is hidden by a Git ignore source: {0}' -f $normalizedPath
             )
+        }
+    }
+}
+
+if ($isProjectRepository) {
+    foreach ($requiredProjectDocument in @('AGENTS.md', 'reference/README.md', '.gitmodules')) {
+        $requiredProjectDocumentPath = Join-Path $repositoryRoot $requiredProjectDocument
+        if (-not (Test-Path -LiteralPath $requiredProjectDocumentPath -PathType Leaf)) {
+            Add-ComplianceFailure (
+                'Required project document is missing: {0}' -f $requiredProjectDocument
+            )
+        }
+    }
+
+    foreach ($legacyPath in @('~archived', '~ref', 'output', 'set_folder_thumb.ps1')) {
+        if (Test-Path -LiteralPath (Join-Path $repositoryRoot $legacyPath)) {
+            Add-ComplianceFailure ('Legacy project path must be migrated: {0}' -f $legacyPath)
+        }
+    }
+
+    foreach ($requiredProjectPath in @(
+        'scripts/set_folder_thumb.ps1',
+        'docs/finished_plans',
+        'reference'
+    )) {
+        if (-not (Test-Path -LiteralPath (Join-Path $repositoryRoot $requiredProjectPath))) {
+            Add-ComplianceFailure ('Required project path is missing: {0}' -f $requiredProjectPath)
+        }
+    }
+
+    $expectedReferences = @(
+        [pscustomobject]@{
+            Path = 'reference/PowerToys'
+            Url = 'https://github.com/microsoft/PowerToys.git'
+            Commit = 'fc680d350f74f1f4eec8a64296420e614724e74d'
+        },
+        [pscustomobject]@{
+            Path = 'reference/mattpocock-skills'
+            Url = 'https://github.com/mattpocock/skills.git'
+            Commit = 'ed37663cc5fbef691ddfecd080dff42f7e7e350d'
+        },
+        [pscustomobject]@{
+            Path = 'reference/winutil'
+            Url = 'https://github.com/ChrisTitusTech/winutil.git'
+            Commit = '50be7390e586f664df76d7fed41fc3c39252288c'
+        }
+    )
+
+    $gitModulesPath = Join-Path $repositoryRoot '.gitmodules'
+    if (Test-Path -LiteralPath $gitModulesPath -PathType Leaf) {
+        foreach ($reference in $expectedReferences) {
+            $moduleName = $reference.Path.Substring('reference/'.Length)
+            $configuredPath = git -c "safe.directory=$safeDirectory" -C $repositoryRoot `
+                config -f .gitmodules --get "submodule.$moduleName.path"
+            $configuredUrl = git -c "safe.directory=$safeDirectory" -C $repositoryRoot `
+                config -f .gitmodules --get "submodule.$moduleName.url"
+
+            if ($configuredPath -ne $reference.Path -or $configuredUrl -ne $reference.Url) {
+                Add-ComplianceFailure (
+                    'Submodule metadata is invalid for {0}.' -f $reference.Path
+                )
+            }
+
+            $stageEntry = git -c "safe.directory=$safeDirectory" -C $repositoryRoot `
+                ls-files --stage -- $reference.Path
+            $expectedStagePrefix = '160000 {0} 0' -f $reference.Commit
+            if ($stageEntry -notlike "$expectedStagePrefix*") {
+                Add-ComplianceFailure (
+                    'Submodule lock is invalid for {0}; expected {1}.' -f
+                    $reference.Path, $reference.Commit
+                )
+            }
         }
     }
 }

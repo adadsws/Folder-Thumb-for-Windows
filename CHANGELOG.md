@@ -2,6 +2,20 @@
 
 本项目的主要变更记录在此文件中。
 
+## 2026-08-04
+
+### 仓库治理
+
+- 将运行脚本移入 `scripts/`，保留根目录 `run.bat` 入口及原有配置行为。
+- 将旧归档、输出和上游引用目录迁移到 `~archive/`、`~outputs/` 和 `reference/`。
+- 为三个上游引用补充可重建的 submodule 元数据、完整锁定 SHA 和许可证说明。
+- 新增 `AGENTS.md` 与 `AGENT_CONTEXT.md`，分离项目代理规则、技术架构和用户说明。
+- 将已完成计划迁移到 `docs/finished_plans/`，并更新合规检查、入口测试与 pre-push 发布边界。
+- 恢复默认图标时将 `desktop.ini`、生成图标和旧 `folder.ico` 送入 Windows 回收站。
+- 回收失败时保留原文件并显示警告，不回退为永久删除；重新生成时的旧临时图标仍直接清理。
+- 脱敏发布仓库不再需要创建不可发布的空 `~archive/` 目录；已有归档内容仍由 Git 跟踪和 pre-push 守卫保护。
+- pre-push shell 包装器移除对外部 `dirname` 的依赖，在精简 `PATH` 的 Git for Windows 环境中仍可定位守卫脚本。
+
 ## 2026-07-26
 
 ### 仓库治理
