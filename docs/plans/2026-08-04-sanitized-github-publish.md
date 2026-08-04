@@ -46,7 +46,7 @@
    - `reference/mattpocock-skills` → `ed37663cc5fbef691ddfecd080dff42f7e7e350d`
    - `reference/winutil` → `50be7390e586f664df76d7fed41fc3c39252288c`
 6. 初始化 submodule，确认三个上游可访问、HEAD 与 Git link 一致且工作区干净。
-7. 配置导出仓库 `core.hooksPath=.githooks`，创建导出提交 `Publish current sanitized project state`。
+7. 配置导出仓库 `core.hooksPath=.githooks`，确保 `.githooks/pre-push` 为 `100755`，创建脱敏导出提交。
 
 ## 任务 3：验证并首次发布
 
@@ -66,7 +66,7 @@ git diff --check HEAD^
 
 1. 在导出仓库运行上述全部验证。
 2. 检查所有 refs 的路径和当前树，确认不存在 `~archive/`、`~outputs/`、`~temp/`、真实 `secrets/**`、凭据或密钥文件；检查 submodule URL、SHA 和许可证说明。
-3. 确认 `main` 仅比 `origin/main` 多一个脱敏提交，执行普通 `git push origin main`；若非 fast-forward、hook、认证或网络失败则停止，不 force push。
+3. 确认 `main` 只包含本次尚未发布的脱敏提交，执行普通 `git push origin main`；若非 fast-forward、hook、认证或网络失败则停止，不 force push。
 4. fetch 后确认远端 `main` SHA 等于导出仓库 HEAD。
 
 ## 任务 4：完成计划并同步远端

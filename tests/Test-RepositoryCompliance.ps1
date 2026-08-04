@@ -103,6 +103,12 @@ if ($isProjectRepository) {
         }
     }
 
+    $prePushStage = git -c "safe.directory=$safeDirectory" -C $repositoryRoot `
+        ls-files --stage -- .githooks/pre-push
+    if ($prePushStage -notlike '100755 *') {
+        Add-ComplianceFailure '.githooks/pre-push must be tracked as executable mode 100755.'
+    }
+
     $expectedReferences = @(
         [pscustomobject]@{
             Path = 'reference/PowerToys'
